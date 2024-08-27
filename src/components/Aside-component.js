@@ -18,7 +18,7 @@ function AsideComponent() {
                 <Link className="nav-link"to="/consulta">Consulta</Link>
                 </li>
                 <li>
-                <Link className="nav-link"to="/crear">Craer registro</Link>
+                <Link className="nav-link"to="/crear">Crear registro</Link>
                 </li>
             </ul>
           </div>

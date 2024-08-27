@@ -6,15 +6,15 @@ import { Controller, useForm } from 'react-hook-form';
 import { Editor } from "primereact/editor";
 import { InputText } from 'primereact/inputtext';
 import { Toast } from "primereact/toast";
-import { useParams } from 'react-router-dom';
-
-import { CustomerService } from '../service/CustomerService';
+import { useNavigate, useParams } from 'react-router-dom';
+import { createGovernment, getGovernment, updateGovernment } from '../service/GovernmentService';
 
 import HeaderComponet from '../components/Header-component';
 function CrearRegistroView() {
 
     const { id } = useParams();
     const [nameAction, setNameAction] = useState("Crear");
+    const [colorBtn, setColorbtn] = useState("primary");
     const title=`${nameAction} Registro`;
     const toast = useRef(null);
      
@@ -28,16 +28,34 @@ function CrearRegistroView() {
     };
 
     const show = (data) => {
-       toast.current.show({ severity: 'success', summary: 'Se registro', detail: `${data.name}`});
+       toast.current.show({ severity: 'success', summary: `Se ${ nameAction==="Crear" ? "registro" : "actualizo"}`, detail: `${data.name}`});
    };
-
+   
+   const navigate = useNavigate();
     const onSubmit = (
         data
         ) => {
-        data.name && show(data);
+        
         let datos = data;
-        console.log(datos);
-        reset();
+        if(datos){
+            data.name && show(data);
+            if(nameAction==="Crear"){
+                createGovernment(data);
+                reset();
+            }else{
+                updateGovernment(data);
+                reset({
+                    name: '',
+                    description: '',
+                  });
+            }
+            setTimeout(() => {
+                return navigate("/consulta");
+            }, 2000);
+            
+        }
+        
+        
     };
     const {
         control,
@@ -51,29 +69,38 @@ function CrearRegistroView() {
         return errors[name] ? <small className="p-error">{errors[name].message}</small> : <small className="p-error">&nbsp;</small>;
     };
 
-    useEffect(() => {
-        if(id){
-            setNameAction("Editar");
-            const customers = CustomerService.getData(); // Obtener los datos del servicio
-            const selectedCustomer = customers.find(c => c.id === parseInt(id));
+    
 
-        if (selectedCustomer) {
-            reset({
-                name: selectedCustomer.name,
-                country: selectedCustomer.country.name,
-                company: selectedCustomer.company,
-                representative: selectedCustomer.representative.name,
-              });
-           
+    useEffect(() => {
+    
+    const fetchGovernment = async () => {
+        try {
+            if(id){
+                setNameAction("Editar");
+                setColorbtn("warning");
+                // const customers = getGovernment(id); 
+                const data = await getGovernment(id); 
+                console.log(data);
+            if (data) {
+                reset({
+                    id: data.id,
+                    name: data.name,
+                    description: data.description,
+                  });
+               
+            }
+            }else {
+                reset({
+                    name: '',
+                    description: '',
+                  });
+            }
+        } catch (error) {
+            console.error("Error al obtener el Government", error);
         }
-        }else {
-            reset({
-                name: '',
-                country: '',
-                company: '',
-                representative: '',
-              });
-        }
+    };
+
+    fetchGovernment();
         
     }, [id]);
   return (
@@ -110,66 +137,13 @@ function CrearRegistroView() {
                                         </div>
                                         <div className="field">
                                             <Controller
-                                                name="country"
+                                                name="description"
                                                 control={control}
-                                                rules={{ required: 'Ciudad es requerido.' }}
+                                                rules={{ required: 'Descripción es requerido.' }}
                                                 render={({ field, fieldState }) => (
                                                     <>
                                                         <label htmlFor={field.name}>
-                                                            Ciudad 
-                                                        </label>
-                                                        <InputText  id={field.name} name={field.name} value={field.value}  onChange={(e) => field.onChange(e.target.value)} className={classNames('w-full',{ 'p-invalid': fieldState.error })} />
-                                                        {getFormErrorMessage(field.name)}
-                                                    </>
-                                                )}
-                                                
-                                            />
-                                        </div>
-                                        <div className="field">
-                                            <Controller
-                                                name="company"
-                                                control={control}
-                                                rules={{ required: 'Compañía es requerido.' }}
-                                                render={({ field, fieldState }) => (
-                                                    <>
-                                                        <label htmlFor={field.name}>
-                                                        Compañía 
-                                                        </label>
-                                                        <InputText  id={field.name} name={field.name} value={field.value}  onChange={(e) => field.onChange(e.target.value)} className={classNames('w-full',{ 'p-invalid': fieldState.error, })} />
-                                                        {getFormErrorMessage(field.name)}
-                                                    </>
-                                                )}
-                                                
-                                            />
-                                        </div>
-                                        <div className="field">
-                                            <Controller
-                                                name="representative"
-                                                control={control}
-                                                rules={{ required: 'Representante es requerido.' }}
-                                                render={({ field, fieldState }) => (
-                                                    <>
-                                                        <label htmlFor={field.name}>
-                                                            Representante 
-                                                        </label>
-                                                        <InputText  id={field.name} name={field.name} value={field.value}  onChange={(e) => field.onChange(e.target.value)} className={classNames('w-full',{ 'p-invalid': fieldState.error })} />
-                                                        {getFormErrorMessage(field.name)}
-                                                    </>
-                                                )}
-                                                
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="col-6">
-                                        <div className="field">
-                                            <Controller
-                                                name="details"
-                                                control={control}
-                                                rules={{ required: 'Detalle es requerido.' }}
-                                                render={({ field, fieldState }) => (
-                                                    <>
-                                                        <label htmlFor={field.name}>
-                                                            Detalle de solicitud
+                                                            Descripción
                                                         </label>
                                                         <Editor id={field.name} name={field.name} value={field.value} onTextChange={(e) => field.onChange(e.textValue)} style={{ height: '250px' }} className={classNames({ 'p-invalid': fieldState.error })} />
                                                         {getFormErrorMessage(field.name)}
@@ -179,9 +153,12 @@ function CrearRegistroView() {
                                             /> 
                                         </div>
                                     </div>
+                                    <div className="col-6">
+                                       
+                                    </div>
                                 </div>
                                 <div className="btn-float-content">
-                                    <Button label="Guardar" type="submit" icon="pi pi-check" className={"btn btn-dark"} />  
+                                    <Button label="Guardar" type="submit" icon="pi pi-check" severity={colorBtn} />  
                                 </div>
 
                             </form>

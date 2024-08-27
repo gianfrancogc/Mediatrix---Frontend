@@ -1,7 +1,7 @@
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
 import React, { useEffect, useRef, useState } from 'react';
-import { CustomerService } from '../service/CustomerService';
+import { getGovernments, removeGovernment } from '../service/GovernmentService';
 
 import { ConfirmDialog, confirmDialog } from "primereact/confirmdialog";
 import { Toast } from "primereact/toast";
@@ -15,45 +15,64 @@ function ConsultaView() {
     const title="Consulta";
 
     const columns = [
+        { field: 'id', header: 'ID', editable: false },
         { field: 'name', header: 'Nombre', editable: false },
-        { field: 'country.name', header: 'Ciudad', editable: false },
-        { field: 'company', header: 'Compañía', editable: false },
-        { field: 'representative.name', header: 'Representante', editable: false },
+        { field: 'description', header: 'Descripción', editable: false },
         { field: 'options', header: 'Opciones', editable: false },
     ];
 
 
+ 
 
-    useEffect(() => {
-        CustomerService.getCustomersMedium().then((data) => setCustomers(data));
+    useEffect(() => { 
+        let isMounted = true; 
+    
+    const fetchGovernments = async () => {
+        try {
+            const data = await getGovernments();
+            if (isMounted) {
+                setCustomers(data);
+            }
+        } catch (error) {
+            console.error("Error al obtener los Governments:", error);
+        }
+    };
+    fetchGovernments();
+
+    return () => {
+        isMounted = false;
+    };
     }, []);
 
-
+    const fetchGovernmentsDelete = async () => {   
+            setCustomers(await getGovernments());      
+    };
 
     const btnOptions = (id)=>{
-
-        // console.log(id.toString());
         return(
             <>
                 <Toast ref={toast} />
                 <div className="d-flex">
-                    {/* <a href={`/editar/${id}`} className="p-2 bg-primary text-white"><i className="pi pi-pencil"></i></a> */}
+                   
                     <Link to={`/editar/${id}`} className="p-2 bg-primary text-white"><i className="pi pi-pencil"></i></Link>&nbsp;
                     <button onClick={()=>confirmDelete(id)} className="p-2 bg-red-500 text-white border-none"><i className="pi pi-eraser"></i></button>
-                    {/* <a href={`/editar/${id}`} className="p-2 bg-red-500 text-white"><i className="pi pi-eraser"></i></a> */}
                 </div>
             </>
         );
     }
-    const reject = () => {
-        toast.current?.show({ severity: 'warn', summary: 'Rechazada', detail: 'has rechazado', life: 3000 });
-    }
+
     const accept = async (id) => {
         
-        let deleted = await id;
+        let deleted = await removeGovernment(id);
+       
         if(deleted){
-          toast.current?.show({ severity: 'info', summary: 'Confirmada', detail: 'has aceptado', life: 3000 });
-        }      
+            toast.current?.show({ severity: 'info', summary: 'Confirmada', detail: 'has aceptado', life: 3000 });
+          
+           await fetchGovernmentsDelete();
+        }     
+    }
+    const reject = () => {
+        toast.current?.show({ severity: 'warn', summary: 'Rechazada', detail: 'has rechazado', life: 3000 });
     }
     const confirmDelete = (id) => {
 
@@ -83,10 +102,6 @@ function ConsultaView() {
                         tableStyle={{ minWidth: '50rem' }}
                         
                         >
-                            {/* <Column field="name" header="Nombre" style={{ width: '25%' }}></Column>
-                            <Column field="country.name" header="Ciudad" style={{ width: '25%' }}></Column>
-                            <Column field="company" header="Compañía" style={{ width: '25%' }}></Column>
-                            <Column field="representative.name" header="Representante" style={{ width: '25%' }}></Column> */}
                             {columns.map(({ field, header, editable  }) => {
                                             return <Column key={field} field={field} header={header}  
                                             body={field === 'options' ? (e)=> btnOptions(e.id) : null}
